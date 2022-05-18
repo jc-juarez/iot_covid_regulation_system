@@ -1,3 +1,4 @@
+
 # -------------------------------------
 # IoT Covid-19 Regulation System
 # Microcontroller System
@@ -13,6 +14,8 @@ from hcsr04 import HCSR04
 from machine import Pin
 from LCD import CharLCD
 import dht
+
+curr_temperature = 0
 
 # Multi-Threading Functions
 
@@ -33,6 +36,7 @@ def check_temperature():
     global max_cap
     global thread_blocker
     global seen_temperature
+    global curr_temperature
     while True:
         if(total_people >= max_cap):
             lcd.set_line(0)
@@ -44,32 +48,27 @@ def check_temperature():
             # if enters a range call function
             # Change False for condition to check
             # valid high temperature range
-            temperature_sensor.measure()
-            curr_temperature = temperature_sensor.temperature()
-            print(curr_temperature)
-            if(curr_temperature > 20):
+            time.sleep(0.5)
+            print("Current Temperature is: " + str(curr_temperature))
+            if(curr_temperature >= 25):
                 # If temperature is too high deny entry
-                if(curr_temperature > 30):
+                if(curr_temperature >= 37):
                     # Call endpoint for entry denial
                     lcd.set_line(0)
                     lcd.message('High Temp!', 2)
                     lcd.set_line(1)
                     lcd.message('Entry Denied.', 2)
-                    time.sleep(5)
-                    pass
+                    time.sleep(3)
                 else:
                     seen_temperature = curr_temperature
                     thread_blocker = True
+                    lcd.set_line(0)
+                    lcd.message('OK. Your Temp:', 2)
+                    lcd.set_line(1)
+                    lcd.message(str(curr_temperature), 2)
                     while(thread_blocker):
-                        lcd.set_line(0)
-                        lcd.message('OK. Your Temp:', 2)
-                        lcd.set_line(1)
-                        lcd.message(str(curr_temperature), 2)
-            else:
-                lcd.set_line(0)
-                lcd.message('Welcome', 2)
-                lcd.set_line(1)
-                lcd.message('Check Temp.', 2)
+                        print("Waiting for person to enter...")
+                        time.sleep(0.5)
 
 def check_max_capacity():
     global max_cap
@@ -89,8 +88,8 @@ def entrance_detection():
         distance = entrance_sensor.distance_cm()
         # Valid Distance
         if(distance < 5): continue
-        print('Distance: ', distance, ' cm')
-        if(distance < 50):
+        #print('Distance: ', distance, ' cm')
+        if(distance < 50 and thread_blocker):
             # Send Detection to Back-end Service along with
             # the seen temperature
             response = urequests.get(entrance_url)
@@ -116,6 +115,7 @@ def exit_detection():
             print(response.status_code)
             response.close()
             # Time for person to move out of sensor sight
+            print("Person out...")
             time.sleep(2.5)
         # Time for sensor refreshing
         time.sleep(0.005)
@@ -162,5 +162,13 @@ _thread.start_new_thread(entrance_detection, ())
 # Exit Detection Thread
 _thread.start_new_thread(exit_detection, ())
 
-# Temperature Checking Thread
+# Check Temperature Thread
 _thread.start_new_thread(check_temperature, ())
+
+while True:
+    try:
+        temperature_sensor.measure()
+        time.sleep(1)
+        curr_temperature = temperature_sensor.temperature()
+    except OSError as e:
+        print("Error on reading temperature...")
