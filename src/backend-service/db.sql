@@ -21,5 +21,13 @@ CREATE TABLE capacity (
     max_capacity INTEGER NOT NULL
 );
 
+CREATE TABLE temperature (
+    main_id TEXT NOT NULL,
+    current_temperature INTEGER NOT NULL
+);
+
 INSERT INTO capacity (main_id, max_capacity)
 VALUES("main", 3);
+
+INSERT INTO temperature (main_id, current_temperature)
+VALUES("main", 0);

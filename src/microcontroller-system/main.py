@@ -13,8 +13,8 @@ import _thread
 from hcsr04 import HCSR04
 from machine import Pin
 from LCD import CharLCD
-import dht
 
+# Temperature read at the sensor
 curr_temperature = 0
 
 # Multi-Threading Functions
@@ -43,22 +43,26 @@ def check_temperature():
             lcd.message('Sorry!', 2)
             lcd.set_line(1)
             lcd.message('Full Capacity.', 2)
+            while(total_people >= max_cap): pass
         else:
             # Check for temperature
             # if enters a range call function
             # Change False for condition to check
             # valid high temperature range
-            time.sleep(0.5)
+            # 7 seconds for in order to let temperature change.
             print("Current Temperature is: " + str(curr_temperature))
             if(curr_temperature >= 25):
+                #lcd.set_line(0)
+                #lcd.message('New Measure', 2)
+                #lcd.set_line(1)
+                #lcd.message('Detected.', 2)
+                #time.sleep(2)
                 # If temperature is too high deny entry
                 if(curr_temperature >= 37):
-                    # Call endpoint for entry denial
                     lcd.set_line(0)
                     lcd.message('High Temp!', 2)
                     lcd.set_line(1)
                     lcd.message('Entry Denied.', 2)
-                    time.sleep(3)
                 else:
                     seen_temperature = curr_temperature
                     thread_blocker = True
@@ -68,7 +72,8 @@ def check_temperature():
                     lcd.message(str(curr_temperature), 2)
                     while(thread_blocker):
                         print("Waiting for person to enter...")
-                        time.sleep(0.5)
+                        time.sleep(0.1)
+        time.sleep(7)
 
 def check_max_capacity():
     global max_cap
@@ -141,12 +146,11 @@ entrance_sensor = HCSR04(trigger_pin=23, echo_pin=22, echo_timeout_us=100000)
 
 exit_sensor = HCSR04(trigger_pin=19, echo_pin=18, echo_timeout_us=100000)
 
-temperature_sensor = dht.DHT11(Pin(25))
-
 check_total_people_url = "http://172.20.10.3:5000/backend-api/check-total-people"
 check_max_cap_url = "http://172.20.10.3:5000/backend-api/check-max-capacity"
 entrance_url = "http://172.20.10.3:5000/backend-api/entrance"
 exit_url = "http://172.20.10.3:5000/backend-api/exit"
+check_temp_url = "http://172.20.10.3:5000/backend-api/check-temperature"
 
 # Main Thread Launches Multiple Threads
 
@@ -165,10 +169,11 @@ _thread.start_new_thread(exit_detection, ())
 # Check Temperature Thread
 _thread.start_new_thread(check_temperature, ())
 
+# Main Thread fetches current temperature served over another Microcontroller
 while True:
     try:
-        temperature_sensor.measure()
-        time.sleep(1)
-        curr_temperature = temperature_sensor.temperature()
-    except OSError as e:
+        response_temperature = urequests.get(check_temp_url)
+        curr_temperature = int(response_temperature.text)
+        time.sleep(0.01)
+    except:
         print("Error on reading temperature...")
