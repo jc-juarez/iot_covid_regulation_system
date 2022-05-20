@@ -6,8 +6,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid = "iPhone de Juan Carlos";
-const char* password = "hello123";
+const char* ssid = "**********";
+const char* password = "**********";
 
 //Your Domain name with URL path or IP address with path
 String serverName = "http://172.20.10.3:5000/backend-api/set-temperature/";
