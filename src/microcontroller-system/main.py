@@ -125,7 +125,6 @@ def exit_detection():
         # Time for sensor refreshing
         time.sleep(0.005)
 
-        
 # -----------------------------------------------------------
 
 # Main Thread
