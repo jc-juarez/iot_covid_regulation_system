@@ -4,5 +4,5 @@ IoT Covid-19 Regulation System for Capacity and Temperature Tracking and Restric
 
 - Back-end Service: Flask Framework and SQLite3 (Server)
 - Front-end Application: Streamlit App Framework (Server)
-- Microcontroller System: MicroPython on ESP32(1)
-- Temperature Microservice: C++ on ESP32(2)
+- Microcontroller System: MicroPython on ESP32 (1)
+- Temperature Microservice: C++ on ESP32 (2)
