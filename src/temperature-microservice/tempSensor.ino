@@ -1,10 +1,7 @@
 /*
- * This ESP32 code is created by esp32io.com
- *
- * This ESP32 code is released in the public domain
- *
- * For more detail (instruction and wiring diagram), visit https://esp32io.com/tutorials/esp32-lm35-temperature-sensor
- */
+  Embedded Systems Team
+  IoT Covid Regulation System
+*/
 
 #include <WiFi.h>
 #include <HTTPClient.h>
