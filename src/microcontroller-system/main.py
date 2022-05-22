@@ -14,6 +14,9 @@ from hcsr04 import HCSR04
 from machine import Pin
 from LCD import CharLCD
 
+# System Status
+system_running = True
+
 # Temperature read at the sensor
 curr_temperature = 0
 
@@ -22,7 +25,11 @@ curr_temperature = 0
 def check_total_people():
     global total_people
     global max_cap
+    global system_running
     while True:
+        if(not system_running):
+            print("Exiting thread 1...")
+            return
         response = urequests.get(check_total_people_url)
         current_total_people = int(response.text)
         if(total_people != current_total_people):
@@ -37,7 +44,11 @@ def check_temperature():
     global thread_blocker
     global seen_temperature
     global curr_temperature
+    global system_running
     while True:
+        if(not system_running):
+            print("Exiting thread 2...")
+            return
         if(total_people >= max_cap):
             lcd.set_line(0)
             lcd.message('Sorry!', 2)
@@ -51,25 +62,28 @@ def check_temperature():
             # valid high temperature range
             # 7 seconds for in order to let temperature change.
             print("Current Temperature is: " + str(curr_temperature))
-            if(curr_temperature >= 25):
+            if(curr_temperature >= 20):
                 #lcd.set_line(0)
                 #lcd.message('New Measure', 2)
                 #lcd.set_line(1)
                 #lcd.message('Detected.', 2)
                 #time.sleep(2)
                 # If temperature is too high deny entry
-                if(curr_temperature >= 37):
+                if(curr_temperature >= 25):
                     lcd.set_line(0)
                     lcd.message('High Temp!', 2)
                     lcd.set_line(1)
                     lcd.message('Entry Denied.', 2)
                 else:
-                    seen_temperature = curr_temperature
-                    thread_blocker = True
+                    seen_temperature = int(curr_temperature)
                     lcd.set_line(0)
-                    lcd.message('OK. Your Temp:', 2)
+                    lcd.message('*New Measure*', 2)
+                    time.sleep(0.4)
+                    lcd.set_line(0)
+                    lcd.message('OK. Your Temp', 2)
                     lcd.set_line(1)
-                    lcd.message(str(curr_temperature), 2)
+                    lcd.message("is: " + str(curr_temperature), 2)
+                    thread_blocker = True
                     while(thread_blocker):
                         print("Waiting for person to enter...")
                         time.sleep(0.1)
@@ -77,7 +91,11 @@ def check_temperature():
 
 def check_max_capacity():
     global max_cap
+    global system_running
     while True:
+        if(not system_running):
+            print("Exiting thread 3...")
+            return
         response = urequests.get(check_max_cap_url)
         current_max_cap = int(response.text)
         if(max_cap != current_max_cap):
@@ -89,7 +107,11 @@ def check_max_capacity():
 def entrance_detection():
     global seen_temperature
     global thread_blocker
+    global system_running
     while True:
+        if(not system_running):
+            print("Exiting thread 4...")
+            return
         distance = entrance_sensor.distance_cm()
         # Valid Distance
         if(distance < 5): continue
@@ -109,12 +131,16 @@ def entrance_detection():
         time.sleep(0.005)
 
 def exit_detection():
+    global system_running
     while True:
+        if(not system_running):
+            print("Exiting thread 5...")
+            return
         distance = exit_sensor.distance_cm()
         # Valid Distance
         if(distance < 5): continue
         #print('Distance2: ', distance, ' cm')
-        if(distance < 50):
+        if(distance < 40):
             # Send Detection to Back-end Service
             response = urequests.get(exit_url)
             print(response.status_code)
@@ -169,10 +195,11 @@ _thread.start_new_thread(exit_detection, ())
 _thread.start_new_thread(check_temperature, ())
 
 # Main Thread fetches current temperature served over another Microcontroller
-while True:
-    try:
+try:
+    while True:
         response_temperature = urequests.get(check_temp_url)
         curr_temperature = int(response_temperature.text)
         time.sleep(0.01)
-    except:
-        print("Error on reading temperature...")
+except KeyboardInterrupt:
+    print("Exiting main thread...")
+    system_running = False
